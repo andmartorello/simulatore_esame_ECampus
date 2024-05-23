@@ -168,11 +168,25 @@ function shuffleArray(array) {
 }
 
 function caricaDomanda(num) {
-	var numerodomanda = num + 1;
-	numDomandaCorrente = num;
-	var n = domandeProposte[num];
+    var numerodomanda = num + 1;
+    numDomandaCorrente = num;
+    var n = domandeProposte[num];
+    var domanda = domande[n];
     
-    randomOrder = [0, 1, 2];
+    // Log per debug
+    console.log("Domanda: ", domanda);
+    
+    var str = numerodomanda + ". " + domanda.question;
+    if (domanda.image) {
+        console.log("Caricamento immagine: ", domanda.image); // Aggiungi questo per vedere il percorso dell'immagine
+        str += "<br><img src='" + domanda.image + "' alt='Immagine per la domanda' style='max-width:100%; height:auto;'>";
+    }
+    
+    $("#domanda").html(str);
+    
+    // Preparazione delle opzioni di risposta
+    var opzioniStr = "";
+    var randomOrder = [0, 1, 2];
     if (domande[n].optionD != "") {
         randomOrder.push(3);
     }
@@ -186,15 +200,18 @@ function caricaDomanda(num) {
         shuffleArray(randomOrder);
     }
     
-    str = "";
-    for (i = 0; i < randomOrder.length; i++) {
-        str += mescolaRisposte(randomOrder[i], n, num);
+    // Genera le opzioni di risposta mescolate
+    for (var i = 0; i < randomOrder.length; i++) {
+        opzioniStr += mescolaRisposte(randomOrder[i], n, num);
     }
-	$(varieopzioni).html(str);
-	str2 = numerodomanda + ". " + domande[n].question;
-    $(domanda).html(str2);
+    
+    // Mostra le opzioni di risposta
+    $(varieopzioni).html(opzioniStr);
+
+    // Genera la navigazione per le altre domande
     generaFooter(num);
 }
+
 
 function generaFooter(n) {
     
@@ -288,12 +305,25 @@ function generaFooter(n) {
 }
 
 function handleClick(option) {
-    risposteDate[numDomandaCorrente] = option.id.toString();
+    var selectedOption = option.id;
+    var currentQuestion = domande[domandeProposte[numDomandaCorrente]];
+    var isCorrect = selectedOption === currentQuestion.correct;
+
+    // Mostra la spiegazione sempre
+    displayExplanation(currentQuestion.explanation, isCorrect, currentQuestion.correct);
+
+    if (!isCorrect) {
+        // Se la risposta è sbagliata, mostra un messaggio e non passare alla domanda successiva
+        alert("Risposta sbagliata. " + currentQuestion.explanation);
+        // Potresti anche aggiungere logica per terminare il quiz o ripetere la domanda
+    }
 }
 
-
-
-
+function displayExplanation(explanation, isCorrect, correctOption) {
+    var message = isCorrect ? "Corretto! " : "Sbagliato! La risposta corretta era: " + correctOption;
+    message += "\nSpiegazione: " + explanation;
+    $('#explanation').text(message);
+}
 
 function generateRandomNumbers(n) {
 	var arr = []
@@ -590,18 +620,20 @@ function generaFooterResult(n) {
 }
 
 function loadJSON(callback) {
-	var xobj = new XMLHttpRequest();
-	xobj.overrideMimeType("application/json");
-    xobj.open('GET', 'script/questions.json', true); // Replace 'my_data' with the path to your file
-    xobj.setRequestHeader("Access-Control-Allow-Origin", "*")
-	xobj.onreadystatechange = function () {
-		if (xobj.readyState == 4 && xobj.status == "200") {
-			// Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
-			callback(xobj.responseText);
-		}
-	};
-	xobj.send(null);
+    var xobj = new XMLHttpRequest();
+    var file = getParameterByName('file'); // Ottiene il nome del file dalla URL
+    xobj.overrideMimeType("application/json");
+    xobj.open('GET', 'data/' + file, true); // Carica il file JSON specifico
+    xobj.onreadystatechange = function () {
+        console.log(xobj.readyState, xobj.status); // Aggiunto per debug
+        if (xobj.readyState == 4 && xobj.status == "200") {
+            console.log("JSON loaded successfully: ", xobj.responseText); // Aggiunto per debug
+            callback(xobj.responseText);
+        }
+    };
+    xobj.send(null);
 }
+
 
 
 function getParameterByName(name, url) {
